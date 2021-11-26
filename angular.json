@@ -1,0 +1,137 @@
+{
+  "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
+  "version": 1,
+  "newProjectRoot": "projects",
+  "projects": {
+    "signature-pad": {
+      "projectType": "library",
+      "root": "projects/signature-pad",
+      "sourceRoot": "projects/signature-pad/src",
+      "prefix": "lib",
+      "architect": {
+        "build": {
+          "builder": "@angular-devkit/build-angular:ng-packagr",
+          "options": {
+            "project": "projects/signature-pad/ng-package.json"
+          },
+          "configurations": {
+            "production": {
+              "tsConfig": "projects/signature-pad/tsconfig.lib.prod.json"
+            },
+            "development": {
+              "tsConfig": "projects/signature-pad/tsconfig.lib.json"
+            }
+          },
+          "defaultConfiguration": "production"
+        },
+        "test": {
+          "builder": "@angular-devkit/build-angular:karma",
+          "options": {
+            "main": "projects/signature-pad/src/test.ts",
+            "tsConfig": "projects/signature-pad/tsconfig.spec.json",
+            "karmaConfig": "projects/signature-pad/karma.conf.js"
+          }
+        }
+      }
+    },
+    "debug-viewer": {
+      "projectType": "application",
+      "schematics": {
+        "@schematics/angular:application": {
+          "strict": true
+        }
+      },
+      "root": "projects/debug-viewer",
+      "sourceRoot": "projects/debug-viewer/src",
+      "prefix": "app",
+      "architect": {
+        "build": {
+          "builder": "@angular-devkit/build-angular:browser",
+          "options": {
+            "outputPath": "dist/debug-viewer",
+            "index": "projects/debug-viewer/src/index.html",
+            "main": "projects/debug-viewer/src/main.ts",
+            "polyfills": "projects/debug-viewer/src/polyfills.ts",
+            "tsConfig": "projects/debug-viewer/tsconfig.app.json",
+            "assets": [
+              "projects/debug-viewer/src/favicon.ico",
+              "projects/debug-viewer/src/assets"
+            ],
+            "styles": [
+              "projects/debug-viewer/src/styles.css"
+            ],
+            "scripts": []
+          },
+          "configurations": {
+            "production": {
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "500kb",
+                  "maximumError": "1mb"
+                },
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "2kb",
+                  "maximumError": "4kb"
+                }
+              ],
+              "fileReplacements": [
+                {
+                  "replace": "projects/debug-viewer/src/environments/environment.ts",
+                  "with": "projects/debug-viewer/src/environments/environment.prod.ts"
+                }
+              ],
+              "outputHashing": "all"
+            },
+            "development": {
+              "buildOptimizer": false,
+              "optimization": false,
+              "vendorChunk": true,
+              "extractLicenses": false,
+              "sourceMap": true,
+              "namedChunks": true
+            }
+          },
+          "defaultConfiguration": "production"
+        },
+        "serve": {
+          "builder": "@angular-devkit/build-angular:dev-server",
+          "configurations": {
+            "production": {
+              "browserTarget": "debug-viewer:build:production"
+            },
+            "development": {
+              "browserTarget": "debug-viewer:build:development"
+            }
+          },
+          "defaultConfiguration": "development"
+        },
+        "extract-i18n": {
+          "builder": "@angular-devkit/build-angular:extract-i18n",
+          "options": {
+            "browserTarget": "debug-viewer:build"
+          }
+        },
+        "test": {
+          "builder": "@angular-devkit/build-angular:karma",
+          "options": {
+            "main": "projects/debug-viewer/src/test.ts",
+            "polyfills": "projects/debug-viewer/src/polyfills.ts",
+            "tsConfig": "projects/debug-viewer/tsconfig.spec.json",
+            "karmaConfig": "projects/debug-viewer/karma.conf.js",
+            "assets": [
+              "projects/debug-viewer/src/favicon.ico",
+              "projects/debug-viewer/src/assets"
+            ],
+            "styles": [
+              "projects/debug-viewer/src/styles.css"
+            ],
+            "scripts": []
+          }
+        }
+      }
+    }
+  },
+  "defaultProject": "signature-pad"
+}

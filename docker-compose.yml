@@ -1,0 +1,20 @@
+version: '2'
+services:
+  signature_pad:
+    build:
+      context: ./
+      dockerfile: app.dockerfile
+    volumes:
+      - ./:/usr/src/app
+      - /usr/src/app/node_modules
+      # - cdn_data:/usr/src/app/elements
+    # command: npm start
+    networks:
+      - default
+networks:
+  default:
+    external: true
+    name: dev-network
+volumes:
+  cdn_data:
+    external: true
