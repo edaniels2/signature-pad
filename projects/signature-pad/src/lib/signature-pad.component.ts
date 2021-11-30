@@ -24,7 +24,10 @@ import { SignaturePadOptions } from './signature-pad-options.model';
   styleUrls: ['./signature-pad.component.css']
 })
 export class SignaturePadComponent implements AfterViewInit, OnDestroy, OnInit {
-  @Input() options!: SignaturePadOptions;
+  @Input() options: SignaturePadOptions = {
+    height: 200,
+    width: 200,
+  };
   @Output() drawComplete = new EventEmitter<string>();
   @Output() viewReady = new EventEmitter<boolean>();
   @ViewChild('canvas') private canvas!: ElementRef<HTMLCanvasElement>;

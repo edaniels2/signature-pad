@@ -1,4 +1,5 @@
 import { Component, ViewChild } from '@angular/core';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { SignaturePadComponent, SignaturePadOptions } from 'signature-pad';
 
 @Component({
@@ -12,9 +13,14 @@ export class AppComponent {
     height: 200,
     width: 800,
   }
+  svg: SafeHtml = '';
+  svgRaw = '';
+
+  constructor(private sanitizer: DomSanitizer) { }
 
   onDrawComplete(event: string) {
-    console.log(event);
+    this.svgRaw = event;
+    this.svg = this.sanitizer.bypassSecurityTrustHtml(event);
   }
 
   clear() {

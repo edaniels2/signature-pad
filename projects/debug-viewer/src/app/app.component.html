@@ -1,3 +1,7 @@
 <h1>BM signature pad test viewer</h1>
 <bm-signature-pad [options]="options" (drawComplete)="onDrawComplete($event)"></bm-signature-pad>
 <button (click)="clear()">Clear</button>
+
+<h2>Output</h2>
+<div class="output-render" [innerHtml]="svg"></div>
+<textarea class="output-text">{{ svgRaw }}</textarea>
