@@ -9,11 +9,11 @@ EXPOSE 4200
 
 WORKDIR /usr/src/app
 
-# COPY package.json ./
-# COPY package-lock.json ./
+COPY package.json ./
+COPY package-lock.json ./
 
-# RUN npm ci
+RUN npm ci
 
-# COPY . /usr/src/app
+COPY . /usr/src/app
 
 CMD ["tail", "-f", "/dev/null"]
