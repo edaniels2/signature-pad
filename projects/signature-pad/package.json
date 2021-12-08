@@ -1,5 +1,5 @@
 {
-  "name": "signature-pad",
+  "name": "@edaniels2/signature-pad",
   "version": "0.0.1",
   "peerDependencies": {
     "@angular/common": "^12.2.0",
