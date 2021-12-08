@@ -1,24 +1,26 @@
 # SignaturePad
 
-This library was generated with [Angular CLI](https://github.com/angular/angular-cli) version 12.2.0.
+angular 12+ Bluemoon signature pad
 
-## Code scaffolding
+## usage
+Import `SignaturePadModule` in NgModule and use tag `bm-signature-pad`.
 
-Run `ng generate component component-name --project signature-pad` to generate a new component. You can also use `ng generate directive|pipe|service|class|guard|interface|enum|module --project signature-pad`.
-> Note: Don't forget to add `--project signature-pad` or else it will be added to the default project in your `angular.json` file. 
+Requires an `[options]` property binding - import `SignaturePadOptions` for type definition.
 
-## Build
+### options attributes
+ - `width`: number | string (required) - px or % allowed
+ - `height`: number | string (required) - px or % allowed
+ - `lineWidth`: number - line width in px - default 3
+ - `base64`: boolean - false to output as plain text, true to encode as data
+ url; default false
 
-Run `ng build signature-pad` to build the project. The build artifacts will be stored in the `dist/` directory.
+ ### output events
+ - `drawComplete: string`: triggered on mouse up or call to clear()
+ - `viewReady: boolean`: emits `true` when component initialization is complete
 
-## Publishing
-
-After building your library with `ng build signature-pad`, go to the dist folder `cd dist/signature-pad` and run `npm publish`.
-
-## Running unit tests
-
-Run `ng test signature-pad` to execute the unit tests via [Karma](https://karma-runner.github.io).
-
-## Further help
-
-To get more help on the Angular CLI use `ng help` or go check out the [Angular CLI Overview and Command Reference](https://angular.io/cli) page.
+### methods
+ - `clear()`: clear canvas, triggers `drawComplete` to emit
+ an empty svg document
+ - `loadSvg(svg: string)`: load a _path specified_ svg to the signature
+ pad. Note: if provided with an svg generated from text this method has the
+ same effect as `clear()`
