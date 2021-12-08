@@ -17,7 +17,7 @@ services:
     volumes:
       - ./:/usr/src/app
       - /usr/src/app/node_modules
-    command: ng serve --host pad.bluemoonformsdev.com --allowed-hosts http://pad.bluemoonformsdev.com,https://pad.bluemoonformsdev.com,wss://pad.bluemoonformsdev.com --disable-host-check
+    command: ng serve --host pad.bluemoonformsdev.com --disable-host-check
     ports:
       - "4200"
     networks:
