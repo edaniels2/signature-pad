@@ -85,6 +85,7 @@ export class SignaturePadComponent implements AfterViewInit, OnDestroy, OnInit {
     canvas.style.width = this.width + 'px';
     this.canvasContext = canvas.getContext('2d')!;
     this.canvasContext.scale(scale, scale);
+    this.canvasContext.lineWidth = this.lineWidth;
     canvas[down] = (e: MouseEvent) => {
       const { x, y } = this.getCanvasCoords(e);
       this.startSvgPath(x, y);
@@ -106,6 +107,23 @@ export class SignaturePadComponent implements AfterViewInit, OnDestroy, OnInit {
   }
 
   /**
+   * Dampen the control point if needed. This prevents the curve from overshooting/oscillating
+   * when there is a sudden large change in the pointer position - generally happens if the
+   * pointer goes off the edge of the canvas and then returns.
+   */
+  private dampenControlPoint(control: Point, path: Point, maxDistance = 8) {
+    let dist = Math.sqrt(Math.pow(Math.abs(path.x - control.x) + Math.abs(path.y - control.y), 2));
+    while (dist > maxDistance) {
+      const dx = (control.x - path.x) / 2;
+      const dy = (control.y - path.y) / 2;
+      control.x -= dx;
+      control.y -= dy;
+      dist = Math.sqrt(Math.pow(Math.abs(path.x - control.x) + Math.abs(path.y - control.y), 2));
+    }
+    return control;
+  }
+
+  /**
    * Draw a line segment to the canvas and svg document from
    * a mouse movement event
    * @param mouse MouseEvent
@@ -121,8 +139,9 @@ export class SignaturePadComponent implements AfterViewInit, OnDestroy, OnInit {
     const controlPoints = this.controlPoints.next(point);
     if (controlPoints.value) {
       const [ctl1, ctl2] = controlPoints.value;
+      this.dampenControlPoint(ctl1, point);
+      this.dampenControlPoint(ctl2, point);
       this.canvasContext.bezierCurveTo(ctl1.x, ctl1.y, ctl2.x, ctl2.y, point.x, point.y);
-      this.canvasContext.lineWidth = this.lineWidth;
       this.canvasContext.stroke();
       this.svgAddCurvePath(ctl1, ctl2, point);
       this.curveStarted = true;
