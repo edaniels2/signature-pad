@@ -14,6 +14,9 @@ Requires an `[options]` property binding - import `SignaturePadOptions` for type
  - `base64`: boolean - false to output as plain text, true to encode as data
  url; default false
 
+ ### public properties
+ - `isEmpty: boolean`
+
  ### output events
  - `drawComplete: string`: triggered on mouse up or call to clear()
  - `viewReady: boolean`: emits `true` when component initialization is complete
@@ -22,5 +25,4 @@ Requires an `[options]` property binding - import `SignaturePadOptions` for type
  - `clear()`: clear canvas, triggers `drawComplete` to emit
  an empty svg document
  - `loadSvg(svg: string)`: load a _path specified_ svg to the signature
- pad. Note: if provided with an svg generated from text this method has the
- same effect as `clear()`
+ pad. Note: any non-path elements will be ignored.
