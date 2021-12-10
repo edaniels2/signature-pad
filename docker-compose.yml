@@ -5,7 +5,12 @@ services:
       context: ./
       dockerfile: app.dockerfile
     volumes:
-      - ./:/usr/src/app
+      - ./angular.json:/usr/src/app/angular.json
+      - ./tsconfig.json:/usr/src/app/tsconfig.json
+      - ./package.json:/usr/src/app/package.json
+      - ./package-lock.json:/usr/src/app/package-lock.json
+      - ./projects/signature-pad:/usr/src/app/projects/signature-pad
+      - dist_output:/usr/src/app/dist/signature-pad
       - /usr/src/app/node_modules
     command: ng build signature-pad --watch
     networks:
@@ -15,7 +20,12 @@ services:
       context: ./
       dockerfile: app.dockerfile
     volumes:
-      - ./:/usr/src/app
+      - ./angular.json:/usr/src/app/angular.json
+      - ./tsconfig.json:/usr/src/app/tsconfig.json
+      - ./package.json:/usr/src/app/package.json
+      - ./package-lock.json:/usr/src/app/package-lock.json
+      - ./projects/debug-viewer:/usr/src/app/projects/debug-viewer
+      - dist_output:/usr/src/app/dist/signature-pad
       - /usr/src/app/node_modules
     command: ng serve --host pad.bluemoonformsdev.com --disable-host-check
     ports:
@@ -26,3 +36,6 @@ networks:
   default:
     external: true
     name: dev-network
+volumes:
+  dist_output:
+    external: false

@@ -1,24 +1,7 @@
 import { AfterViewInit, Component, ElementRef, EventEmitter, Input, OnDestroy, OnInit, Output, ViewChild } from '@angular/core';
 
-import { getCurveControlPoints } from './bezier-spline';
-import { SignaturePadOptions } from './signature-pad-options.model';
-
-interface Point {
-  x: number,
-  y: number
-}
-
-interface CurveControlPoints {
-  firstControlPoints: Point[],
-  secondControlPoints: Point[],
-}
-
-/**
- * The number of mouse/pointer move events ignored between points provided to 
- * bezier control points regression. Higher values result in smaller svg files
- * but reduced accuracy, especially when making quick strokes.
- */
-const BEZIER_SKIP = 2;
+import { curveControlGenerator } from './bezier-spline';
+import { Point, SignaturePadOptions } from './models';
 
 /**
  * Captures drawn image and outputs as a string svg definition.
@@ -28,12 +11,12 @@ const BEZIER_SKIP = 2;
  * - lineWidth: number - line width in px - default 3
  * - base64: boolean - false to output as plain text, true to encode as data
  * url; default false
+ * @public isEmpty: boolean - true if nothing is currently drawn
  * @emits drawComplete: string - on mouse up or call to clear()
  * @method clear() - clear canvas, triggers `drawComplete` to emit
  * an empty svg document
  * @method loadSvg(svg: string) - load a _path specified_ svg to the signature
- * pad. Note: if provided with an svg generated from text this method has the
- * same effect as `clear()`
+ * pad. Note: any non-path elements will be ignored.
  */
 @Component({
   selector: 'bm-signature-pad',
@@ -50,14 +33,13 @@ export class SignaturePadComponent implements AfterViewInit, OnDestroy, OnInit {
   @ViewChild('canvas') private canvas!: ElementRef<HTMLCanvasElement>;
 
   private base64 = false;
-  private canvasContext: CanvasRenderingContext2D | null = null;
-  private eventType: 'pointer' | 'mouse' | null = null;
+  private canvasContext!: CanvasRenderingContext2D;
+  private controlPoints = curveControlGenerator();
+  private curveStarted = false;
+  private eventType: 'pointer' | 'mouse' = 'pointer';
   private height = 0;
   private lineWidth = 3;
   private path = '';
-  private points: Point[] = [];
-  private pointsLinear: Point[] = [];
-  private skipCounter = 0;
   private svgString = '';
   private width = 0;
   private _isEmpty = true;
@@ -70,6 +52,7 @@ export class SignaturePadComponent implements AfterViewInit, OnDestroy, OnInit {
 
   ngOnInit() {
     this.setConfigOptions();
+    this.controlPoints.next();
   }
 
   ngAfterViewInit() {
@@ -81,6 +64,7 @@ export class SignaturePadComponent implements AfterViewInit, OnDestroy, OnInit {
 
   ngOnDestroy() {
     this.drawComplete.complete();
+    this.controlPoints.return();
   }
 
   /**
@@ -94,19 +78,30 @@ export class SignaturePadComponent implements AfterViewInit, OnDestroy, OnInit {
     const move = `on${this.eventType}move` as const;
     const up = `on${this.eventType}up` as const;
     const canvas = this.canvas.nativeElement;
-    canvas.height = this.height;
-    canvas.width = this.width;
-    this.canvasContext = canvas.getContext('2d') as CanvasRenderingContext2D;
+    const scale = window.devicePixelRatio;
+    canvas.height = this.height * scale;
+    canvas.width = this.width * scale;
+    canvas.style.height = this.height + 'px';
+    canvas.style.width = this.width + 'px';
+    this.canvasContext = canvas.getContext('2d')!;
+    this.canvasContext.scale(scale, scale);
     canvas[down] = (e: MouseEvent) => {
       const { x, y } = this.getCanvasCoords(e);
       this.startSvgPath(x, y);
-      this.canvasContext!.moveTo(x, y);
+      this.canvasContext.beginPath();
+      this.canvasContext.moveTo(x, y);
+      this.curveStarted = false;
       canvas[move] = (mv: MouseEvent) => this.draw(mv);
     };
     canvas[up] = () => {
       canvas[move] = null;
-      this.endSvgPath();
-      this.onDrawComplete(true);
+      // reset control points generator
+      this.controlPoints.return();
+      this.controlPoints = curveControlGenerator();
+      this.controlPoints.next();
+
+      this.endPath();
+      this.onDrawComplete();
     };
   }
 
@@ -122,11 +117,16 @@ export class SignaturePadComponent implements AfterViewInit, OnDestroy, OnInit {
       return mouseUp && mouseUp.call(this);
     }
 
-    const { x, y } = this.getCanvasCoords(mouse);
-    this.collectPathData(x, y);
-    this.canvasContext!.lineTo(x, y);
-    this.canvasContext!.lineWidth = this.lineWidth;
-    this.canvasContext!.stroke();
+    const point = this.getCanvasCoords(mouse);
+    const controlPoints = this.controlPoints.next(point);
+    if (controlPoints.value) {
+      const [ctl1, ctl2] = controlPoints.value;
+      this.canvasContext.bezierCurveTo(ctl1.x, ctl1.y, ctl2.x, ctl2.y, point.x, point.y);
+      this.canvasContext.lineWidth = this.lineWidth;
+      this.canvasContext.stroke();
+      this.svgAddCurvePath(ctl1, ctl2, point);
+      this.curveStarted = true;
+    }
   }
 
   /**
@@ -143,14 +143,9 @@ export class SignaturePadComponent implements AfterViewInit, OnDestroy, OnInit {
   /**
    * Emit the current svg image
    */
-  private onDrawComplete(updateCtx = false) {
+  private onDrawComplete() {
     let svgOut = `${this.svgString}</svg>`;
     svgOut = svgOut.replace(/\s+/g, ' ');
-    if (updateCtx) {
-      this.canvasContext!.clearRect(0, 0, this.width, this.height);
-      this.canvasContext!.beginPath();
-      this.loadSvg(svgOut);
-    }
     if (this.base64) {
       svgOut = `data:image/svg+xml;base64,${btoa(svgOut)}`;
     }
@@ -174,62 +169,35 @@ export class SignaturePadComponent implements AfterViewInit, OnDestroy, OnInit {
 
   private startSvgPath(x: number, y: number) {
     this.path = `<path d="M ${Math.round(x)} ${Math.round(y)} `;
-    this.points.push({ x, y });
     this._isEmpty = false;
   }
 
-  /**
-   * Add line segments to the current path using this.pointsLinear
-   */
-  private drawLinearPath() {
-    let pathAdded = false;
-    for (const { x, y } of this.pointsLinear) {
-      this.path += `L ${Math.round(x)} ${Math.round(y)} `;
-      pathAdded = true;
-    }
-    return pathAdded;
-  }
-
-  /**
-   * Add bezier curve segments to the current path using this.points and provided control points
-   * @param curve control points generated by getCurveControlPoints
-   */
-  private drawBezierPath(curve: CurveControlPoints) {
-    const { firstControlPoints, secondControlPoints } = curve;
-    const n = firstControlPoints.length;
-    this.path += `C ${Math.round(firstControlPoints[0].x)} ${Math.round(firstControlPoints[0].y)},
-      ${Math.round(secondControlPoints[0].x)} ${Math.round(secondControlPoints[0].y)},
-      ${Math.round(this.points[1].x)} ${Math.round(this.points[1].y)} `;
-    for (let i = 0; i < n; i++) {
-      this.path += `S ${Math.round(secondControlPoints[i].x)} ${Math.round(secondControlPoints[i].y)},
-        ${Math.round(this.points[i + 1].x)} ${Math.round(this.points[i + 1].y)} `;
-    }
-  }
-
-  private collectPathData(x: number, y: number) {
-    this.pointsLinear.push({ x, y });
-    if (++this.skipCounter >= BEZIER_SKIP) {
-      this.pointsLinear = [];
-      this.skipCounter = 0;
-      this.points.push({ x, y });
+  private svgAddCurvePath(ctl1: Point, ctl2: Point, end: Point) {
+    if (this.curveStarted) {
+      this.path += `S ${Math.round(ctl2.x)} ${Math.round(ctl2.y)},
+        ${Math.round(end.x)} ${Math.round(end.y)} `;
+    } else {
+      this.path += `C ${Math.round(ctl1.x)} ${Math.round(ctl1.y)},
+        ${Math.round(ctl2.x)} ${Math.round(ctl2.y)},
+        ${Math.round(end.x)} ${Math.round(end.y)} `;
     }
   }
 
   /**
    * Append path data to the current svg string, and closes the svg path tag
    */
-  private endSvgPath() {
-    const curve = getCurveControlPoints(this.points);
-    let pathAdded = !!curve;
-    if (curve) {
-      this.drawBezierPath(curve);
-    } else {
-      pathAdded = this.drawLinearPath();
+  private endPath() {
+    if (!this.path) {
+      return;
     }
-    this.points = [];
-    this.pointsLinear = [];
-    this.path += '"/>';
-    this.svgString += this.path;
+    if (!this.curveStarted) {
+      // this was a click with no movement, so add a dot
+      this.path += 'q 1 -1, 2 0 q -1 1, -2 0';
+      this.canvasContext.stroke(new Path2D(this.path.substring(9)));
+    }
+    this.svgString += `${this.path}"/>`;
+    this.path = '';
+    this.canvasContext.closePath();
   }
 
   /**
@@ -263,8 +231,8 @@ export class SignaturePadComponent implements AfterViewInit, OnDestroy, OnInit {
     this._isEmpty = true;
     this.initSvg();
     this.onDrawComplete();
-    this.canvasContext!.clearRect(0, 0, this.width, this.height);
-    this.canvasContext!.beginPath();
+    this.canvasContext.clearRect(0, 0, this.width, this.height);
+    this.canvasContext.beginPath();
   }
 
   /**
@@ -294,8 +262,8 @@ export class SignaturePadComponent implements AfterViewInit, OnDestroy, OnInit {
       for (const path of paths) {
         const match = path.match(/d\s?=\s?"([^"]*)"/);
         if (match) {
-          this.canvasContext!.lineWidth = lineWidth;
-          this.canvasContext!.stroke(new Path2D(match[1]));
+          this.canvasContext.lineWidth = lineWidth;
+          this.canvasContext.stroke(new Path2D(match[1]));
         }
       }
       this.svgString = data.replace(/<\/svg>/g, '');

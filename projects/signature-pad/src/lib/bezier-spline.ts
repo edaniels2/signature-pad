@@ -1,3 +1,35 @@
+import { Point } from './models';
+
+/**
+ * Incrementally calculate control points for a Bezier curve. Start the iterator and then each
+ * call to next(p) should contain the next point in the path. Once at least three points have
+ * been supplied a pair of control points will be returned by each iteration.
+ */
+export function* curveControlGenerator(): Generator<false | [Point, Point], void, Point> {
+  var pMinus2: Point,
+    pMinus1: Point,
+    p: Point,
+    control1: Point,
+    control2: Point;
+  // just store points until we have enough to calculate
+  pMinus2 = yield false;
+  pMinus1 = yield false;
+  p = yield false;
+  // calculate the first set of control points using the main algorithm
+  const { firstControlPoints, secondControlPoints } = getCurveControlPoints([pMinus2, pMinus1, p])!;
+  control1 = firstControlPoints[1];
+  control2 = secondControlPoints[1];
+  p = yield [control1, control2];
+  while (true) {
+    control1 = reflectPoint(control2, pMinus1);
+    control2.x = (p.x + control1.x) / 2;
+    control2.y = (p.y + control1.y) / 2;
+    pMinus2 = pMinus1;
+    pMinus1 = p;
+    p = yield [control1, control2];
+  }
+}
+
 /**
  * Calculate Bezier curve control points for a smooth curve through the given points.
  *
@@ -72,11 +104,9 @@ function getFirstControlPoints(rhs: number[]): number[] {
   return result;
 }
 
-class Point {
-  x: number;
-  y: number;
-  constructor(x = 0, y = 0) {
-    this.x = x;
-    this.y = y;
-  }
+function reflectPoint(input: Point, anchor: Point): Point {
+  return {
+    x: 2 * anchor.x - input.x,
+    y: 2 * anchor.y - input.y
+  };
 }
