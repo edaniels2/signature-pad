@@ -187,18 +187,18 @@ export class SignaturePadComponent implements AfterViewInit, OnDestroy, OnInit {
   }
 
   private startSvgPath(x: number, y: number) {
-    this.path = `<path d="M ${Math.round(x)} ${Math.round(y)} `;
+    this.path = `<path d="M ${x.toFixed(2)} ${y.toFixed(2)} `;
     this._isEmpty = false;
   }
 
   private svgAddCurvePath(ctl1: Point, ctl2: Point, end: Point) {
     if (this.curveStarted) {
-      this.path += `S ${Math.round(ctl2.x)} ${Math.round(ctl2.y)},
-        ${Math.round(end.x)} ${Math.round(end.y)} `;
+      this.path += `S ${ctl2.x.toFixed(2)} ${ctl2.y.toFixed(2)},
+        ${end.x.toFixed(2)} ${end.y.toFixed(2)} `;
     } else {
-      this.path += `C ${Math.round(ctl1.x)} ${Math.round(ctl1.y)},
-        ${Math.round(ctl2.x)} ${Math.round(ctl2.y)},
-        ${Math.round(end.x)} ${Math.round(end.y)} `;
+      this.path += `C ${ctl1.x.toFixed(2)} ${ctl1.y.toFixed(2)},
+        ${ctl2.x.toFixed(2)} ${ctl2.y.toFixed(2)},
+        ${end.x.toFixed(2)} ${end.y.toFixed(2)} `;
     }
   }
 
